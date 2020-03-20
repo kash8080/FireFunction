@@ -1,12 +1,8 @@
 package com.kashyapmedia.firefunction;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.functions.FirebaseFunctions;
-import com.google.firebase.functions.HttpsCallableResult;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -18,6 +14,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
+
+import io.reactivex.Observable;
 
 public class FireFunction {
 
@@ -49,26 +47,62 @@ public class FireFunction {
                     return method.invoke(this, args);
                 }
 
-                result = handleFunctions(proxy,method,args);
+                result = handleFunction(proxy,method,args);
 
                 return result;
             }
         });
     }
 
-    private <P> Call<P> handleFunctions(Object proxy, Method method, @Nullable Object[] args){
-
+    private Object handleFunction(Object proxy, Method method, @Nullable Object[] args){
         final Request request=RequestParser.parseRequest(proxy,method,args);
+        if(request.getReturnEnclosingClass()==Call.class){
+            return handleFunctionCallback(request);
+        }else if(request.getReturnEnclosingClass()== Observable.class){
+            return handleFunctionObservable(request);
+        }else{
+            throw new RuntimeException("Invalid return type");
+        }
+
+    }
+
+    private <P> Call<P> handleFunctionCallback(final Request request){
+
         if(request!=null){
-            if(request.getReturnEnclosingClass()!=Call.class){
-                throw new RuntimeException("Invalid return type");
-            }
             return new Call<P>() {
                 @Override
                 public void execute(Response<P> response) {
                     callFirebaseFunction(request,response);
                 }
             };
+        }
+        return null;
+    }
+
+    private <P> Observable<P> handleFunctionObservable(final Request request){
+
+        if(request!=null){
+            return Observable.create(emitter -> {
+                callFirebaseFunction(request, new Response<P>() {
+                    @Override
+                    public void onSuccess(P data) {
+                        if(!emitter.isDisposed()){
+                            emitter.onNext(data);
+                            emitter.onComplete();
+                        }
+                    }
+                    @Override
+                    public void onError(Exception e) {
+                        if(!emitter.isDisposed()){
+                            emitter.onError(e);
+                        }
+                    }
+                });
+                emitter.setCancellable(() -> {
+                    // TODO: 21-03-2020 cancel firebase request
+                });
+
+            });
         }
         return null;
     }
@@ -85,17 +119,13 @@ public class FireFunction {
         mFunctions
                 .getHttpsCallable(request.getFunctionName())
                 .call(map)
-                .addOnCompleteListener(new OnCompleteListener<HttpsCallableResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<HttpsCallableResult> task) {
-                        if (task.isSuccessful()) {
-                            HashMap<String, Object> result = (HashMap<String, Object>) task.getResult().getData();
-                            String json=gson.toJson(result);
-                            P p=(P)gson.fromJson(json,request.getReturnType());
-                            response.onSuccess(p);
-                        }else{
-                            response.onError(task.getException());
-                        }
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        HashMap<String, Object> result = (HashMap<String, Object>) task.getResult().getData();
+                        String json=gson.toJson(result);
+                        response.onSuccess((P)gson.fromJson(json,request.getReturnType()));
+                    }else{
+                        response.onError(task.getException());
                     }
                 });
 
