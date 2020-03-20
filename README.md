@@ -14,8 +14,16 @@ allprojects {
 ```
 In you module level build.gradle file
 ```groovy
+android {
+  ...
+  // This library requires Java 8.
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+}
 dependencies {
-  implementation 'com.github.kash8080:FireFunction:0.1.0'
+  implementation 'com.github.kash8080:FireFunction:0.2.0'
 }
 ```
 ## The Why
@@ -52,13 +60,18 @@ public interface FirebaseInterface {
     @FirebaseFunction("yourFunctionName")
     @FirebaseFunctionRegion("yourFunctionRegion")
     Call<ResponseBodyModel> getData(@FirebaseFunctionBody RequestBodyModel body);
+    
+    @FirebaseFunction("yourFunctionName")
+    @FirebaseFunctionRegion("yourFunctionRegion")
+    Observable<ProfileResponseBody> getDataRx(@FirebaseFunctionBody RequestBodyModel body);
 
 }
 ```
 Now call the api from anywhere in your code like this
 ```java
 RequestBodyModel requestBody=new RequestBodyModel("testid","testname");
-Call<ResponseBodyModel> data = FireFunction.getInstance().create(FirebaseInterface.class).getData(requestBody);
+FirebaseInterface myInterface= FireFunction.getInstance().create(FirebaseInterface.class);
+Call<ResponseBodyModel> data = myInterface.getData(requestBody);
 data.execute(new Response<ResponseBodyModel>() {
     @Override
     public void onSuccess(ResponseBodyModel data) {
@@ -70,6 +83,32 @@ data.execute(new Response<ResponseBodyModel>() {
         e.printStackTrace();
     }
 });
+
+//or with observables like this
+myInterface.getDataRx(requestBody)
+    .observeOn(AndroidSchedulers.mainThread())
+    .subscribe(new Observer<ProfileResponseBody>() {
+        @Override
+        public void onSubscribe(Disposable d) {
+            Log.d(TAG, "onSubscribe: ");
+            disposables.add(d);
+        }
+
+        @Override
+        public void onNext(ProfileResponseBody profileResponseBody) {
+            Log.d(TAG, "onNext: name="+profileResponseBody.getName()+",age="+profileResponseBody.getAge());
+        }
+
+        @Override
+        public void onError(Throwable e) {
+            Log.e(TAG, "onError: ",e );
+        }
+
+        @Override
+        public void onComplete() {
+            Log.d(TAG, "onComplete: ");
+        }
+    });
 
 ```
 
