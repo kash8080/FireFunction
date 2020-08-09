@@ -10,6 +10,7 @@ import com.kashyapmedia.firefunction.Models.Request;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
 public class RequestParser {
 
@@ -22,7 +23,7 @@ public class RequestParser {
         if(firebaseFunction!=null){
 
             Request request=new Request();
-            Class returnType = (Class)(((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[0]);
+            Type returnType = (((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[0]);
             request.setReturnType(returnType);
             request.setReturnEnclosingClass(method.getReturnType());
 

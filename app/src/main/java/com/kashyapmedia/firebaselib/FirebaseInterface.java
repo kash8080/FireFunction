@@ -11,9 +11,11 @@ import io.reactivex.Observable;
 public interface FirebaseInterface {
 
     @FirebaseFunction("testFunc")
+    //@FirebaseFunctionRegion("yourFunctionRegion")
     Call<ProfileResponseBody> getProfile(@FirebaseFunctionBody SampleRequestBody bodyString);
 
     @FirebaseFunction("testFunc")
+    //@FirebaseFunctionRegion("yourFunctionRegion")
     Observable<ProfileResponseBody> getProfileRX(@FirebaseFunctionBody SampleRequestBody bodyString);
 
 }

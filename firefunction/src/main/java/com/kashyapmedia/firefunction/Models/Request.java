@@ -1,9 +1,11 @@
 package com.kashyapmedia.firefunction.Models;
 
+import java.lang.reflect.Type;
+
 public class Request {
     private String functionName;
     private Class bodyType;
-    private Class returnType;
+    private Type returnType;
     private Class returnEnclosingClass;
     private Object body;
     private String functionRegion;
@@ -52,11 +54,11 @@ public class Request {
         this.returnEnclosingClass = returnEnclosingClass;
     }
 
-    public Class getReturnType() {
+    public Type getReturnType() {
         return returnType;
     }
 
-    public void setReturnType(Class returnType) {
+    public void setReturnType(Type returnType) {
         this.returnType = returnType;
     }
 }

@@ -123,7 +123,7 @@ public class FireFunction {
                     if (task.isSuccessful()) {
                         HashMap<String, Object> result = (HashMap<String, Object>) task.getResult().getData();
                         String json=gson.toJson(result);
-                        response.onSuccess((P)gson.fromJson(json,request.getReturnType()));
+                        response.onSuccess(gson.fromJson(json,request.getReturnType()));
                     }else{
                         response.onError(task.getException());
                     }
