@@ -1,5 +1,7 @@
 package com.kashyapmedia.firefunction;
 
+import android.util.Log;
+
 import androidx.annotation.Nullable;
 
 import com.google.firebase.functions.FirebaseFunctions;
@@ -18,6 +20,9 @@ import java.util.HashMap;
 import io.reactivex.Observable;
 
 public class FireFunction {
+
+    private static final String TAG = "FireFunction";
+    public static boolean debug=false;
 
     private static FireFunction instance;
 
@@ -71,7 +76,7 @@ public class FireFunction {
         if(request!=null){
             return new Call<P>() {
                 @Override
-                public void execute(Response<P> response) {
+                public void execute(@Nullable Response<P> response) {
                     callFirebaseFunction(request,response);
                 }
             };
@@ -107,12 +112,14 @@ public class FireFunction {
         return null;
     }
 
-    private <P> void callFirebaseFunction(final Request request, final Response<P> response){
+    private <P> void callFirebaseFunction(final Request request,@Nullable  final Response<P> response){
         HashMap<String,Object> map=new HashMap<>();
+        String bodyJson="";
         if(request.getBodyType()!=null && request.getBody()!=null){
-            String json = gson.toJson(request.getBody());
-            map=gson.fromJson(json,new TypeToken<HashMap<String, Object>>() {}.getType());
+            bodyJson = gson.toJson(request.getBody());
+            map=gson.fromJson(bodyJson,new TypeToken<HashMap<String, Object>>() {}.getType());
         }
+        Log.d(TAG, request.getFunctionName()+" - request : "+bodyJson);
 
         String functionRegion=request.getFunctionRegion();
         FirebaseFunctions mFunctions = functionRegion!=null? FirebaseFunctions.getInstance(functionRegion):FirebaseFunctions.getInstance();
@@ -121,11 +128,25 @@ public class FireFunction {
                 .call(map)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        HashMap<String, Object> result = (HashMap<String, Object>) task.getResult().getData();
+                        HashMap<String, Object> result =new HashMap<>();
+                        try{
+                            result = (HashMap<String, Object>) task.getResult().getData();
+                        }catch (Exception e){
+                            if(debug){
+                                Log.e(TAG, request.getFunctionName()+ " : ",e );
+                            }
+                        }
                         String json=gson.toJson(result);
-                        response.onSuccess(gson.fromJson(json,request.getReturnType()));
+                        if(debug){
+                            Log.d(TAG, request.getFunctionName()+" - response : "+json);
+                        }
+                        if(response!=null){
+                            response.onSuccess(gson.fromJson(json,request.getReturnType()));
+                        }
                     }else{
-                        response.onError(task.getException());
+                        if(response!=null){
+                            response.onError(task.getException());
+                        }
                     }
                 });
 

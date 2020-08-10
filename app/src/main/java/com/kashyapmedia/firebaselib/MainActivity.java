@@ -28,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
 
         disposables =new CompositeDisposable();
 
+        FireFunction.debug=true;
+
         SampleRequestBody requestBody=new SampleRequestBody("testid","testname");
         FirebaseInterface myInterface= FireFunction.getInstance().create(FirebaseInterface.class);
 
