@@ -18,4 +18,8 @@ public interface FirebaseInterface {
     //@FirebaseFunctionRegion("yourFunctionRegion")
     Observable<ProfileResponseBody> getProfileRX(@FirebaseFunctionBody SampleRequestBody bodyString);
 
+    @FirebaseFunction("nonexistentfunction")
+        //@FirebaseFunctionRegion("yourFunctionRegion")
+    Call<ProfileResponseBody> nonexistentfunction(@FirebaseFunctionBody SampleRequestBody bodyString);
+
 }

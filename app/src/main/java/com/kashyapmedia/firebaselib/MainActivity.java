@@ -11,6 +11,8 @@ import com.kashyapmedia.firefunction.FireFunction;
 import com.kashyapmedia.firefunction.Models.Call;
 import com.kashyapmedia.firefunction.Models.Response;
 
+import java.util.HashMap;
+
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
@@ -31,7 +33,20 @@ public class MainActivity extends AppCompatActivity {
         FireFunction.debug=true;
 
         SampleRequestBody requestBody=new SampleRequestBody("testid","testname");
-        FirebaseInterface myInterface= FireFunction.getInstance().create(FirebaseInterface.class);
+        FirebaseInterface myInterface= FireFunction.getInstance()
+                .setGlobalRequestListener(new FireFunction.GlobalRequestListener() {
+                    @Override
+                    public void onSuccess(String functionName, HashMap<String, Object> resultData) {
+                        Log.d(TAG, "GlobalRequestListener onSuccess: functionName:"+functionName);
+                    }
+
+                    @Override
+                    public void onError(String functionName, HashMap<String, Object> requestData, Exception e) {
+                        Log.d(TAG, "GlobalRequestListener onError: functionName:"+functionName+" error:"+e.toString());
+
+                    }
+                })
+                .create(FirebaseInterface.class);
 
         Call<ProfileResponseBody> data = myInterface.getProfile(requestBody);
         data.execute(new Response<ProfileResponseBody>() {
@@ -43,6 +58,19 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onError(Exception e) {
                 Log.e(TAG, "onError: ",e );
+            }
+        });
+
+        data = myInterface.nonexistentfunction(requestBody);
+        data.execute(new Response<ProfileResponseBody>() {
+            @Override
+            public void onSuccess(ProfileResponseBody data) {
+                Log.d(TAG, "nonexistentfunction onSuccess: name=");
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "nonexistentfunction onError: ",e );
             }
         });
 

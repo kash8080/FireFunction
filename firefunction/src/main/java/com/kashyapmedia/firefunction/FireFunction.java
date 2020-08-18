@@ -28,6 +28,8 @@ public class FireFunction {
 
     private Gson gson;
 
+    private GlobalRequestListener globalRequestListener;
+
     private FireFunction() {
         gson=new GsonBuilder().create();
     }
@@ -37,6 +39,11 @@ public class FireFunction {
             instance=new FireFunction();
         }
         return instance;
+    }
+
+    public FireFunction setGlobalRequestListener(GlobalRequestListener globalRequestListener) {
+        this.globalRequestListener = globalRequestListener;
+        return this;
     }
 
     @SuppressWarnings("unchecked") // Single-interface proxy creation guarded by parameter safety.
@@ -119,10 +126,12 @@ public class FireFunction {
             bodyJson = gson.toJson(request.getBody());
             map=gson.fromJson(bodyJson,new TypeToken<HashMap<String, Object>>() {}.getType());
         }
-        Log.d(TAG, request.getFunctionName()+" - request : "+bodyJson);
-
+        if(debug){
+            Log.d(TAG, request.getFunctionName()+" - request : "+bodyJson);
+        }
         String functionRegion=request.getFunctionRegion();
         FirebaseFunctions mFunctions = functionRegion!=null? FirebaseFunctions.getInstance(functionRegion):FirebaseFunctions.getInstance();
+        HashMap<String, Object> finalMap = map;
         mFunctions
                 .getHttpsCallable(request.getFunctionName())
                 .call(map)
@@ -140,16 +149,29 @@ public class FireFunction {
                         if(debug){
                             Log.d(TAG, request.getFunctionName()+" - response : "+json);
                         }
+                        if(globalRequestListener !=null){
+                            globalRequestListener.onSuccess(request.getFunctionName(),result);
+                        }
                         if(response!=null){
-                            response.onSuccess(gson.fromJson(json,request.getReturnType()));
+                            P successData=gson.fromJson(json,request.getReturnType());
+                            response.onSuccess(successData);
                         }
                     }else{
+                        if(globalRequestListener !=null){
+                            globalRequestListener.onError(request.getFunctionName(), finalMap,task.getException());
+                        }
                         if(response!=null){
                             response.onError(task.getException());
                         }
                     }
                 });
 
+    }
+
+
+    public interface GlobalRequestListener {
+        void onSuccess(String functionName, HashMap<String, Object> resultData);
+        void onError(String functionName,HashMap<String,Object> requestData, Exception e);
     }
 
 
