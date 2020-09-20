@@ -3,6 +3,8 @@ package com.kashyapmedia.firefunction;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.google.firebase.functions.FirebaseFunctions;
 import com.google.gson.Gson;
@@ -11,6 +13,9 @@ import com.google.gson.reflect.TypeToken;
 import com.kashyapmedia.firefunction.Models.Call;
 import com.kashyapmedia.firefunction.Models.Request;
 import com.kashyapmedia.firefunction.Models.Response;
+import com.kashyapmedia.firefunction.responses.ApiErrorResponse;
+import com.kashyapmedia.firefunction.responses.ApiResponse;
+import com.kashyapmedia.firefunction.responses.ApiSuccessResponse;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -72,6 +77,8 @@ public class FireFunction {
             return handleFunctionCallback(request);
         }else if(request.getReturnEnclosingClass()== Observable.class){
             return handleFunctionObservable(request);
+        }else if(request.getReturnEnclosingClass()== LiveData.class){
+            return handleFunctionLiveData(request);
         }else{
             throw new RuntimeException("Invalid return type");
         }
@@ -119,6 +126,25 @@ public class FireFunction {
         return null;
     }
 
+    private <P> LiveData<ApiResponse<P>> handleFunctionLiveData(final Request request){
+
+        if(request!=null){
+            MutableLiveData<ApiResponse<P>> livedata=new MutableLiveData<>();
+            callFirebaseFunction(request, new Response<P>() {
+                @Override
+                public void onSuccess(P data) {
+                    livedata.setValue(new ApiSuccessResponse<>(data));
+                }
+                @Override
+                public void onError(Exception e) {
+                    livedata.postValue(new ApiErrorResponse(e.getMessage()));
+                }
+            });
+
+            return livedata;
+        }
+        return null;
+    }
     private <P> void callFirebaseFunction(final Request request,@Nullable  final Response<P> response){
         HashMap<String,Object> map=new HashMap<>();
         String bodyJson="";

@@ -10,6 +10,9 @@ import com.kashyapmedia.firebaselib.Models.SampleRequestBody;
 import com.kashyapmedia.firefunction.FireFunction;
 import com.kashyapmedia.firefunction.Models.Call;
 import com.kashyapmedia.firefunction.Models.Response;
+import com.kashyapmedia.firefunction.responses.ApiErrorResponse;
+import com.kashyapmedia.firefunction.responses.ApiResponse;
+import com.kashyapmedia.firefunction.responses.ApiSuccessResponse;
 
 import java.util.HashMap;
 
@@ -60,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "onError: ",e );
             }
         });
-
+/*
         data = myInterface.nonexistentfunction(requestBody);
         data.execute(new Response<ProfileResponseBody>() {
             @Override
@@ -73,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "nonexistentfunction onError: ",e );
             }
         });
-
+*/
         myInterface.getProfileRX(requestBody)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ProfileResponseBody>() {
@@ -96,6 +99,20 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onComplete() {
                         Log.d(TAG, "onComplete: ");
+                    }
+                });
+
+
+        myInterface.getProfileLiveData(requestBody)
+                .observe(this, new androidx.lifecycle.Observer<ApiResponse<ProfileResponseBody>>() {
+                    @Override
+                    public void onChanged(ApiResponse<ProfileResponseBody> profileResponseBodyApiResponse) {
+                        if(profileResponseBodyApiResponse instanceof ApiSuccessResponse){
+                            Log.d(TAG, "getProfileLiveData success: "+((ApiSuccessResponse<ProfileResponseBody>) profileResponseBodyApiResponse).getBody().getName());
+
+                        }else if(profileResponseBodyApiResponse instanceof ApiErrorResponse){
+                            Log.e(TAG, "getProfileLiveData onError: "+((ApiErrorResponse<ProfileResponseBody>) profileResponseBodyApiResponse).getErrorMessage());
+                        }
                     }
                 });
 
